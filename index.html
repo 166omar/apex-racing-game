@@ -48,6 +48,13 @@
   #menu::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.05;background:repeating-linear-gradient(115deg,#fff 0 2px,transparent 2px 9px);}
   .brand{display:flex;align-items:baseline;gap:16px;} .brand h1{font-family:var(--disp);font-style:italic;font-weight:700;font-size:clamp(38px,6.5vw,86px);margin:0;letter-spacing:-2px;line-height:.85;background:linear-gradient(180deg,#fff,#aeb7c0);-webkit-background-clip:text;background-clip:text;color:transparent;}
   .brand .slash{width:6px;align-self:stretch;background:var(--amber);transform:skewX(-12deg);margin:2px 0;} .brand .sub{font-size:12px;letter-spacing:6px;color:var(--dim);text-transform:uppercase;}
+  #menu>*{flex-shrink:0;}   /* keep the garage banner from being squashed by flexbox */
+  .garage-wrap{position:relative;flex:0 0 auto;margin-top:14px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:radial-gradient(120% 130% at 50% -10%,rgba(67,232,255,.14),rgba(7,8,9,0) 60%),linear-gradient(180deg,#0c1016,#070809);}
+  #garage{display:block;width:100%;height:min(36vh,330px);}
+  .garage-wrap .gname{position:absolute;left:20px;bottom:16px;pointer-events:none;}
+  .garage-wrap .gname #garageName{font-family:var(--disp);font-size:clamp(24px,4vw,38px);font-weight:700;letter-spacing:1px;display:block;line-height:.9;}
+  .garage-wrap .gname .gsub{font-size:10px;letter-spacing:3px;color:var(--cyan);text-transform:uppercase;}
+  .garage-wrap .gtag{position:absolute;right:18px;top:14px;font-size:10px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;border:1px solid var(--line);border-radius:20px;padding:4px 12px;pointer-events:none;}
   .cfg{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:1220px;margin-top:16px;} @media(max-width:900px){.cfg{grid-template-columns:1fr;}}
   .sec{margin-bottom:16px;} .sec h2{font-size:11px;letter-spacing:5px;color:var(--dim);text-transform:uppercase;margin:0 0 10px;display:flex;align-items:center;gap:10px;} .sec h2::before{content:"";width:20px;height:2px;background:var(--amber);}
   .cars{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;}
@@ -102,7 +109,8 @@
 <div id="loader"><div class="spin"></div><div class="l1">APEX</div><div class="l2">Loading…</div><div id="err"></div></div>
 
 <div id="menu" style="display:none">
-  <div class="brand"><div class="slash"></div><div><h1>APEX</h1><div class="sub">Grand Prix · 5 Cars · Online 1v1</div></div></div>
+  <div class="brand"><div class="slash"></div><div><h1>APEX</h1><div class="sub">Garage · 8 Cars · 7 Tracks · Online 1v1</div></div></div>
+  <div class="garage-wrap"><canvas id="garage"></canvas><div class="gname"><span id="garageName">—</span><span class="gsub">Your car · live preview — spins as you customize</span></div><div class="gtag">GARAGE</div></div>
   <div class="cfg">
     <div>
       <div class="sec"><h2>Select Machine</h2><div class="cars" id="cars"></div></div>
@@ -419,7 +427,7 @@ const CARS=[
 const carDef=id=>CARS.find(c=>c.id===id)||CARS[0];
 const LIVERIES=[0xc81e2b,0xf2f2f2,0x0fa958,0xff6a00,0x1f6dff,0x9b2fae,0x00b3a4,0xffd200];
 const DIFF={easy:{pace:0.80,look:0.95,grip:0.94},medium:{pace:0.90,look:1.05,grip:1.0},hard:{pace:0.98,look:1.15,grip:1.06},ace:{pace:1.02,look:1.25,grip:1.12}};
-const WHEELBASE=3;
+const WHEELBASE=2.4;   // shorter -> tighter steering radius
 
 // ---------- FX ----------
 function smokeTexture(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const grd=g.createRadialGradient(32,32,0,32,32,32);grd.addColorStop(0,'rgba(240,240,240,0.85)');grd.addColorStop(1,'rgba(240,240,240,0)');g.fillStyle=grd;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
@@ -476,9 +484,9 @@ function stepCar(c,inp,dt){const sp=c.spec;const near=nearestLocal(c);const onTr
   let aLong=0;if(inp.throttle>0){aLong+=inp.throttle*driveMul*(sp.drive*(1-0.55*sf)+sp.launch*Math.max(0,1-av/14));}else{aLong-=sp.roll*0.5*Math.sign(v||1)*(av>0.3?1:0)+(av>0.3?sp.drive*0.04*Math.sign(v):0);}
   if(inp.brake>0){if(v>0.4)aLong-=sp.brake*inp.brake;else aLong-=sp.drive*0.6*inp.brake;}
   aLong-=sp.drag*v*av;aLong-=(onTrack?0.4:1.8)*v/60;c.vLong+=aLong*dt;if(inp.handbrake)c.vLong*=Math.pow(0.4,dt);c.vLong=Math.max(-sp.topSpeed*0.32,Math.min(topS,c.vLong));if(Math.abs(c.vLong)<0.15&&inp.throttle===0&&inp.brake===0)c.vLong=0;
-  const speedSteer=1-0.45*sf;const target=inp.steer*sp.maxSteer*speedSteer;c.steer+=(target-c.steer)*Math.min(1,dt*13);
+  const speedSteer=1-0.38*sf;const target=inp.steer*sp.maxSteer*1.12*speedSteer;c.steer+=(target-c.steer)*Math.min(1,dt*16); // sharper, tighter
   const load=Math.min(1,inp.throttle*0.40+inp.brake*0.55);let gripLat=sp.gripK*(1+sp.downforce*sf)*gripMul*(c.aiGrip||1)*(1-0.24*load);if(inp.handbrake)gripLat*=0.45;
-  const yawKin=c.steer*c.vLong/WHEELBASE,yawMax=gripLat/Math.max(5,Math.abs(c.vLong));const yawRate=Math.max(-yawMax,Math.min(yawMax,yawKin));c.yaw+=yawRate*dt;
+  const yawKin=c.steer*c.vLong/WHEELBASE,yawMax=gripLat/Math.max(4.2,Math.abs(c.vLong));const yawRate=Math.max(-yawMax,Math.min(yawMax,yawKin));c.yaw+=yawRate*dt;
   const latGrip=(inp.handbrake?2.0:(onTrack?10.5:3.4))*(1-0.28*load);const F=new THREE.Vector3(Math.sin(c.yaw),0,Math.cos(c.yaw)),R=new THREE.Vector3(Math.cos(c.yaw),0,-Math.sin(c.yaw));
   c.vLat+=yawRate*c.vLong*0.003;c.vLat-=c.vLat*Math.min(1,latGrip*dt);c.slip=Math.abs(c.vLat)+(inp.handbrake?Math.abs(c.vLong)*0.4:0);
   c.pos.x+=(F.x*c.vLong+R.x*c.vLat)*dt;c.pos.z+=(F.z*c.vLong+R.z*c.vLat)*dt;
@@ -636,14 +644,14 @@ function buildCustomize(){const el=document.getElementById('custom');
   el.innerHTML=`<div class="crow"><span class="clbl">Colour</span>${colorRow}</div>`+
    `<div class="crow"><span class="clbl">Front</span><div class="opt sel" data-f="0">Stock</div><div class="opt" data-f="1">Splitter</div><div class="opt" data-f="2">Aero</div></div>`+
    `<div class="crow"><span class="clbl">Rear</span><div class="opt sel" data-r="0">Stock</div><div class="opt" data-r="1">Diffuser</div><div class="opt" data-r="2">GT Wing</div></div>`;
-  el.querySelectorAll('.dot').forEach(d=>d.addEventListener('click',()=>{el.querySelectorAll('.dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');cfg.color=parseInt(d.dataset.c);}));
-  el.querySelectorAll('.opt[data-f]').forEach(b=>b.addEventListener('click',()=>{el.querySelectorAll('.opt[data-f]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg.front=+b.dataset.f;}));
-  el.querySelectorAll('.opt[data-r]').forEach(b=>b.addEventListener('click',()=>{el.querySelectorAll('.opt[data-r]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg.rear=+b.dataset.r;}));}
+  el.querySelectorAll('.dot').forEach(d=>d.addEventListener('click',()=>{el.querySelectorAll('.dot').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');cfg.color=parseInt(d.dataset.c);updatePreview();}));
+  el.querySelectorAll('.opt[data-f]').forEach(b=>b.addEventListener('click',()=>{el.querySelectorAll('.opt[data-f]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg.front=+b.dataset.f;updatePreview();}));
+  el.querySelectorAll('.opt[data-r]').forEach(b=>b.addEventListener('click',()=>{el.querySelectorAll('.opt[data-r]').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg.rear=+b.dataset.r;updatePreview();}));}
 let deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;});
 function buildCarCards(){const el=document.getElementById('cars');el.innerHTML='';CARS.forEach((c,i)=>{const d=document.createElement('div');d.className='card'+(i===0?' sel':'');d.dataset.id=c.id;
   d.innerHTML=`<div class="swatch" style="background:${c.sw}"></div><div class="cn">${c.name}</div><div class="ct">${c.tag} · top ${Math.round(c.spec.topSpeed*3.6)}</div>`;
-  d.addEventListener('click',()=>{document.querySelectorAll('#cars .card').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');cfg.car=c.id;});el.appendChild(d);});}
+  d.addEventListener('click',()=>{document.querySelectorAll('#cars .card').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');cfg.car=c.id;updatePreview();});el.appendChild(d);});}
 function buildTrackCards(){const el=document.getElementById('tracks');el.innerHTML='';TRACKS.forEach((t,i)=>{const d=document.createElement('div');d.className='tcard'+(i===0?' sel':'');d.dataset.i=i;d.innerHTML=`<div class="tn">${t.name}</div><div class="td">${t.desc}</div>`;d.addEventListener('click',()=>{document.querySelectorAll('.tcard').forEach(x=>x.classList.remove('sel'));d.classList.add('sel');cfg.track=i;});el.appendChild(d);});}
 function buildSeg(id,vals,key,def){const el=document.getElementById(id);el.innerHTML='';vals.forEach(v=>{const b=document.createElement('button');b.textContent=v;if(v===def)b.classList.add('sel');b.addEventListener('click',()=>{el.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg[key]=v;});el.appendChild(b);});}
 document.querySelectorAll('#modeSeg button').forEach(b=>b.addEventListener('click',()=>{document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel');cfg.mode=b.dataset.mode;
@@ -660,10 +668,27 @@ document.getElementById('mpJoinBtn').addEventListener('click',mpJoinUI);
 document.getElementById('mpConnect').addEventListener('click',()=>mpJoinStart(document.getElementById('mpCodeIn').value));
 document.getElementById('installBtn').addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;}else{alert('To install: open your browser menu and choose "Add to Home Screen" or "Install app". Once installed it plays offline.');}});
 
+// ---------- garage: live 3D car preview ----------
+let pRenderer,pScene,pCam,pTurn,pCar,pT=0;
+function initGarage(){const cv=document.getElementById('garage');if(!cv||!window.WebGLRenderingContext)return;
+  try{pRenderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});}catch(e){return;}
+  pRenderer.setPixelRatio(Math.min(devicePixelRatio,2));pRenderer.outputColorSpace=THREE.SRGBColorSpace;pRenderer.toneMapping=THREE.ACESFilmicToneMapping;pRenderer.toneMappingExposure=1.1;
+  pScene=new THREE.Scene();pScene.add(new THREE.HemisphereLight(0xffffff,0x3a3f4a,1.15));
+  const key=new THREE.DirectionalLight(0xffffff,1.7);key.position.set(6,9,7);pScene.add(key);
+  const rim=new THREE.DirectionalLight(0x88aaff,0.8);rim.position.set(-7,4,-5);pScene.add(rim);
+  const plat=new THREE.Mesh(new THREE.CylinderGeometry(4.8,4.8,0.3,56),new THREE.MeshStandardMaterial({color:0x12151b,metalness:0.4,roughness:0.5}));plat.position.y=-0.16;pScene.add(plat);
+  const ring=new THREE.Mesh(new THREE.TorusGeometry(4.8,0.06,8,72),new THREE.MeshStandardMaterial({color:0xffd21f,emissive:0xffd21f,emissiveIntensity:0.5}));ring.rotation.x=Math.PI/2;ring.position.y=0.02;pScene.add(ring);
+  pCam=new THREE.PerspectiveCamera(38,2,0.1,100);pTurn=new THREE.Group();pScene.add(pTurn);
+  resizeGarage();updatePreview();}
+function resizeGarage(){if(!pRenderer)return;const cv=document.getElementById('garage');const w=cv.clientWidth||640,h=cv.clientHeight||300;pRenderer.setSize(w,h,false);pCam.aspect=w/h;pCam.updateProjectionMatrix();}
+function updatePreview(){if(!pScene)return;if(pCar){pTurn.remove(pCar);pCar.traverse(o=>{o.geometry&&o.geometry.dispose&&o.geometry.dispose();});}
+  const def=carDef(cfg.car);const paint=cfg.color||def.paint;const g=def.build(paint);addBumpers(g,cfg.front,cfg.rear,paint);pCar=g;pTurn.add(g);
+  document.getElementById('garageName').textContent=def.name;pCam.position.set(7.2,3.3,7.8);pCam.lookAt(0,0.6,0);}
+
 // ---------- main loop ----------
 let last=performance.now();
 function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
-  if(state==='menu'){menuCamera(dt);}
+  if(state==='menu'){menuCamera(dt);if(pRenderer){const gcv=pRenderer.domElement;if(gcv.clientWidth&&Math.abs(gcv.width-gcv.clientWidth*Math.min(devicePixelRatio,2))>2)resizeGarage();pT+=dt*0.5;pTurn.rotation.y=pT;pRenderer.render(pScene,pCam);}}
   else{const racing=state==='racing'||state==='freeroam';
     if(state==='countdown'){countT-=dt;const n=Math.ceil(countT);if(n!==countShown){countShown=n;if(n>0){countTxt.textContent=n;countTxt.className='';}else{countTxt.textContent='GO';countTxt.className='go';}countTxt.style.animation='none';void countTxt.offsetWidth;countTxt.style.animation='';}if(countT<=-0.6){countEl.style.display='none';state='racing';}}
     for(const c of cars){if(c.remote){stepRemote(c,dt);continue;}let inp;if(c.isPlayer)inp=racing?playerInput():{throttle:0,brake:0,steer:0,handbrake:false};else if(c.ai&&state!=='countdown'&&!c.finished)inp=aiInput(c);else inp={throttle:0,brake:0,steer:0,handbrake:false};stepCar(c,inp,dt);}
@@ -677,11 +702,11 @@ function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
   }
   const f=player||cars[0];if(f){sun.position.set(f.pos.x+400,700,f.pos.z+250);sun.target.position.copy(f.pos);}
   renderer.render(scene,camera);requestAnimationFrame(frame);}
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);resizeGarage();});
 
 function boot(){
   if('serviceWorker'in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
-  bindTouch();buildCarCards();buildCustomize();buildTrackCards();buildSeg('aiSeg',[1,2,3,5,7],'ai',3);buildSeg('lapSeg',[1,2,3,5,10],'laps',5);
+  bindTouch();buildCarCards();buildCustomize();buildTrackCards();buildSeg('aiSeg',[1,2,3,5,7],'ai',3);buildSeg('lapSeg',[1,2,3,5,10],'laps',5);initGarage();
   buildTrack(TRACKS[0]);document.getElementById('loader').style.display='none';
   const h=new URLSearchParams(location.hash.slice(1));
   if(h.get('auto')){cfg.mode=h.get('auto');cfg.diff=h.get('diff')||'medium';cfg.car=h.get('car')||'f1';cfg.track=+(h.get('track')||0);cfg.ai=+(h.get('ai')||3);cfg.laps=+(h.get('laps')||3);try{audioCtx=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}startGame({...cfg});}
