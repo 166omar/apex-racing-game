@@ -135,7 +135,7 @@
         <button data-d="easy">Easy</button><button data-d="medium" class="sel">Medium</button><button data-d="hard">Hard</button><button data-d="ace">Ace</button></div></div>
       <button id="start">Start Engine ▸</button>
       <button id="installBtn">📥 Install App · Play Offline</button>
-      <div class="hint"><b>W/↑</b> throttle · <b>S/↓</b> brake · <b>A D/←→</b> steer · <b>Space</b> drift · <b>V</b> cam · <b>R</b> recover · <b>Esc</b> menu · <b>C</b> swap (free roam) — on phone use the on-screen buttons.</div>
+      <div class="hint"><b>W/↑</b> throttle · <b>S/↓</b> brake · <b>A D/←→</b> steer · <b>Space</b> drift · <b>B</b> boost · <b>V</b> cam · <b>R</b> recover · <b>Esc</b> menu · <b>C</b> swap (free roam) — on phone use the on-screen buttons.</div>
     </div>
   </div>
 </div>
@@ -144,7 +144,7 @@
 <div id="racebar" class="panel"><div class="lap">LAP <b id="lapNow">1</b>/<span id="lapTot">5</span></div><div class="pos">POS <b id="posNow">1</b>/<span id="posTot">4</span></div></div>
 <div id="order" class="panel"></div>
 <div id="count"><span id="countTxt">3</span></div>
-<div id="help" class="panel"><div><b>W/↑</b> throttle &nbsp; <b>S/↓</b> brake</div><div><b>A D/←→</b> steer &nbsp; <b>Space</b> drift</div><div><b>V</b> cam &nbsp; <b>R</b> recover &nbsp; <b>Esc</b> menu</div></div>
+<div id="help" class="panel"><div><b>W/↑</b> throttle &nbsp; <b>S/↓</b> brake</div><div><b>A D/←→</b> steer &nbsp; <b>Space</b> drift &nbsp; <b>B</b> boost</div><div><b>V</b> cam &nbsp; <b>R</b> recover &nbsp; <b>Esc</b> menu</div></div>
 <canvas id="map" width="200" height="200"></canvas>
 <div id="touch">
   <div class="tbtn lg tsl" data-k="left">◀</div><div class="tbtn lg tsr" data-k="right">▶</div>
@@ -427,7 +427,7 @@ const CARS=[
 const carDef=id=>CARS.find(c=>c.id===id)||CARS[0];
 const LIVERIES=[0xc81e2b,0xf2f2f2,0x0fa958,0xff6a00,0x1f6dff,0x9b2fae,0x00b3a4,0xffd200];
 const DIFF={easy:{pace:0.80,look:0.95,grip:0.94},medium:{pace:0.90,look:1.05,grip:1.0},hard:{pace:0.98,look:1.15,grip:1.06},ace:{pace:1.02,look:1.25,grip:1.12}};
-const WHEELBASE=2.4;   // shorter -> tighter steering radius
+const WHEELBASE=2.0;   // shorter -> very tight steering radius
 
 // ---------- FX ----------
 function smokeTexture(){const c=document.createElement('canvas');c.width=c.height=64;const g=c.getContext('2d');const grd=g.createRadialGradient(32,32,0,32,32,32);grd.addColorStop(0,'rgba(240,240,240,0.85)');grd.addColorStop(1,'rgba(240,240,240,0)');g.fillStyle=grd;g.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
@@ -484,9 +484,9 @@ function stepCar(c,inp,dt){const sp=c.spec;const near=nearestLocal(c);const onTr
   let aLong=0;if(inp.throttle>0){aLong+=inp.throttle*driveMul*(sp.drive*(1-0.55*sf)+sp.launch*Math.max(0,1-av/14));}else{aLong-=sp.roll*0.5*Math.sign(v||1)*(av>0.3?1:0)+(av>0.3?sp.drive*0.04*Math.sign(v):0);}
   if(inp.brake>0){if(v>0.4)aLong-=sp.brake*inp.brake;else aLong-=sp.drive*0.6*inp.brake;}
   aLong-=sp.drag*v*av;aLong-=(onTrack?0.4:1.8)*v/60;c.vLong+=aLong*dt;if(inp.handbrake)c.vLong*=Math.pow(0.4,dt);c.vLong=Math.max(-sp.topSpeed*0.32,Math.min(topS,c.vLong));if(Math.abs(c.vLong)<0.15&&inp.throttle===0&&inp.brake===0)c.vLong=0;
-  const speedSteer=1-0.38*sf;const target=inp.steer*sp.maxSteer*1.12*speedSteer;c.steer+=(target-c.steer)*Math.min(1,dt*16); // sharper, tighter
-  const load=Math.min(1,inp.throttle*0.40+inp.brake*0.55);let gripLat=sp.gripK*(1+sp.downforce*sf)*gripMul*(c.aiGrip||1)*(1-0.24*load);if(inp.handbrake)gripLat*=0.45;
-  const yawKin=c.steer*c.vLong/WHEELBASE,yawMax=gripLat/Math.max(4.2,Math.abs(c.vLong));const yawRate=Math.max(-yawMax,Math.min(yawMax,yawKin));c.yaw+=yawRate*dt;
+  const speedSteer=1-0.28*sf;const target=inp.steer*sp.maxSteer*1.35*speedSteer;c.steer+=(target-c.steer)*Math.min(1,dt*18); // very easy, very sharp turns
+  const load=Math.min(1,inp.throttle*0.40+inp.brake*0.55);let gripLat=sp.gripK*(1.15+sp.downforce*sf)*gripMul*(c.aiGrip||1)*(1-0.2*load);if(inp.handbrake)gripLat*=0.45;
+  const yawKin=c.steer*c.vLong/WHEELBASE,yawMax=gripLat/Math.max(3.4,Math.abs(c.vLong));const yawRate=Math.max(-yawMax,Math.min(yawMax,yawKin));c.yaw+=yawRate*dt;
   const latGrip=(inp.handbrake?2.0:(onTrack?10.5:3.4))*(1-0.28*load);const F=new THREE.Vector3(Math.sin(c.yaw),0,Math.cos(c.yaw)),R=new THREE.Vector3(Math.cos(c.yaw),0,-Math.sin(c.yaw));
   c.vLat+=yawRate*c.vLong*0.003;c.vLat-=c.vLat*Math.min(1,latGrip*dt);c.slip=Math.abs(c.vLat)+(inp.handbrake?Math.abs(c.vLong)*0.4:0);
   c.pos.x+=(F.x*c.vLong+R.x*c.vLat)*dt;c.pos.z+=(F.z*c.vLong+R.z*c.vLat)*dt;
@@ -534,7 +534,7 @@ function bindTouch(){document.querySelectorAll('#touch .tbtn').forEach(el=>{cons
 function requestFS(){try{const el=document.documentElement;if(el.requestFullscreen)el.requestFullscreen().catch(()=>{});else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(()=>{});}catch(e){}}
 function checkRotate(){document.getElementById('rotate').style.display=(isTouch&&state!=='menu'&&innerHeight>innerWidth)?'flex':'none';}
 addEventListener('resize',checkRotate);
-function playerInput(){let throttle=0,brake=0,steer=0;if(keys['w']||keys['arrowup']||touch.throttle)throttle=1;if(keys['s']||keys['arrowdown']||touch.brake)brake=1;if(keys['a']||keys['arrowleft']||touch.left)steer+=1;if(keys['d']||keys['arrowright']||touch.right)steer-=1;return{throttle,brake,steer,handbrake:!!keys[' ']||touch.handbrake,boost:!!keys['shift']||touch.boost};}
+function playerInput(){let throttle=0,brake=0,steer=0;if(keys['w']||keys['arrowup']||touch.throttle)throttle=1;if(keys['s']||keys['arrowdown']||touch.brake)brake=1;if(keys['a']||keys['arrowleft']||touch.left)steer+=1;if(keys['d']||keys['arrowright']||touch.right)steer-=1;return{throttle,brake,steer,handbrake:!!keys[' ']||touch.handbrake,boost:!!keys['b']||!!keys['shift']||touch.boost};}
 function recover(){const c=player,ni=nearestGlobal(c.pos.x,c.pos.z),t=cTan[ni.i];c.pos.copy(cPts[ni.i]);c.yaw=Math.atan2(t.x,t.z);c.vLong=0;c.vLat=0;c.steer=0;c.lastIdx=ni.i;applyTransform(c);}
 
 // ---------- cameras ----------
