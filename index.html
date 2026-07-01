@@ -705,7 +705,12 @@ function frame(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);resizeGarage();});
 
 function boot(){
-  if('serviceWorker'in navigator){try{navigator.serviceWorker.register('sw.js').catch(()=>{});}catch(e){}}
+  if('serviceWorker'in navigator){try{
+    var hadController=!!navigator.serviceWorker.controller,refreshing=false;
+    navigator.serviceWorker.addEventListener('controllerchange',function(){if(refreshing||!hadController)return;refreshing=true;location.reload();});
+    navigator.serviceWorker.register('sw.js').then(function(reg){reg.update();setInterval(function(){reg.update();},30*60*1000);}).catch(()=>{});
+    document.addEventListener('visibilitychange',function(){if(!document.hidden)navigator.serviceWorker.getRegistration().then(function(r){if(r)r.update();});});
+  }catch(e){}}
   bindTouch();buildCarCards();buildCustomize();buildTrackCards();buildSeg('aiSeg',[1,2,3,5,7],'ai',3);buildSeg('lapSeg',[1,2,3,5,10],'laps',5);initGarage();
   buildTrack(TRACKS[0]);document.getElementById('loader').style.display='none';
   const h=new URLSearchParams(location.hash.slice(1));
