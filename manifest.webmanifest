@@ -1,7 +1,7 @@
 {
   "name": "APEX Racing",
   "short_name": "APEX",
-  "description": "3D arcade racing — 8 cars, 7 tracks, customization, boost, online 1v1.",
+  "description": "3D arcade racing — 13 cars, 12 tracks, upgrades, credits, customization, boost, online 1v1.",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#070809",
